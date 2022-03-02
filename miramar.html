@@ -28,8 +28,8 @@
                 // return fetch( window.location.origin + '/res/match_data.csv' ) // Uncomment this line for local
                 .then( response => response.text() )
                 .then( text => {
-                    console.log( window.location.origin + '/PUBG-Endings/res/match_data.csv' );
                     let lines = text.split( '\r\n' );
+                    console.log(lines);
                     let matchData = [];
                     lines.forEach(line => {
                         let lineData = line.split( ',' );
