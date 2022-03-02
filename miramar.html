@@ -28,7 +28,8 @@
                 // return fetch( window.location.origin + '/res/match_data.csv' ) // Uncomment this line for local
                 .then( response => response.text() )
                 .then( text => {
-                    let lines = text.split( '\r\n' );
+                    // let lines = text.split( '\r\n' ); // Uncomment this line for local
+                    let lines = text.split('\n'); // Uncomment this line for remote
                     console.log(text);
                     let matchData = [];
                     lines.forEach(line => {
