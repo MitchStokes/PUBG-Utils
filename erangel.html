@@ -23,13 +23,13 @@
 
         <script>
 
+            let IS_REMOTE = true;
+
             async function getMatchData() {
-                return fetch( window.location.origin + '/PUBG-Endings/res/match_data.csv' ) // Uncomment this line for host
-                // return fetch( window.location.origin + '/res/match_data.csv' ) // Uncomment this line for local
+                return fetch( window.location.origin + (IS_REMOTE ? '/PUBG-Endings' : '') + '/res/match_data.csv' )
                 .then( response => response.text() )
                 .then( text => {
-                    // let lines = text.split( '\r\n' ); // Uncomment this line for local
-                    let lines = text.split('\n'); // Uncomment this line for remote
+                    let lines = (IS_REMOTE ? text.split('\n') : text.split( '\r\n' ));
                     let matchData = [];
                     lines.forEach(line => {
                         let lineData = line.split( ',' );
