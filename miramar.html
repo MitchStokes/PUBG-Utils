@@ -29,7 +29,7 @@
                 .then( response => response.text() )
                 .then( text => {
                     let lines = text.split( '\r\n' );
-                    console.log(lines);
+                    console.log(text);
                     let matchData = [];
                     lines.forEach(line => {
                         let lineData = line.split( ',' );
