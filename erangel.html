@@ -27,6 +27,8 @@
                 return fetch('/res/match_data.csv')
                 .then( response => response.text() )
                 .then( text => {
+                    console.log('hi');
+                    console.log(text);
                     let lines = text.split( '\r\n' );
                     let matchData = [];
                     lines.forEach(line => {
