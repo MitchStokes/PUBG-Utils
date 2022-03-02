@@ -23,7 +23,7 @@
 
         <script>
             
-            let IS_REMOTE = false;
+            let IS_REMOTE = true;
 
             async function getMatchData() {
                 return fetch( window.location.origin + (IS_REMOTE ? '/PUBG-Endings' : '') + '/res/match_data.csv' )
