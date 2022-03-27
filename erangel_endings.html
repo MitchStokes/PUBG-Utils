@@ -24,6 +24,7 @@
         <script>
 
             let IS_REMOTE = window.location.origin.includes('github');
+            console.log(window.location.origin);
 
             async function getMatchData() {
                 return fetch( window.location.origin + (IS_REMOTE ? '/PUBG-Endings' : '') + '/res/match_data.csv' )
