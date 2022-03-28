@@ -36,12 +36,15 @@ setTimeout(() => {
     function zoomViewbox(targetX, targetY, amount) {
         if(getViewbox()[2] + amount >= 400) {
             let cur = transformEdgeToCenter(getViewbox());
-            cur[0] = (2 * cur[0] + targetX) / 3;
-            cur[1] = (2 * cur[1] + targetY) / 3;
+            let oldCur = [...cur];
             cur[2] = clamp(cur[2] + amount, 0, 2000);
             cur[3] = clamp(cur[3] + amount, 0, 2000);
+            cur[0] = targetX - cur[2] * ((targetX - cur[0]) / oldCur[2]);
+            cur[1] = targetY - cur[3] * ((targetY - cur[1]) / oldCur[3]);
+
+            console.log(cur);
+
             cur = transformCenterToEdge(cur);
-    
             cur[0] = clamp(cur[0], 0, 2000-cur[2]);
             cur[1] = clamp(cur[1], 0, 2000-cur[3]);
             return cur;
