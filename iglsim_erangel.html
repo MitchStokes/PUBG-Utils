@@ -13,6 +13,7 @@
         
         <link rel="stylesheet" href="css/base_style.css">
         <link rel="stylesheet" href="css/nav_style.css">
+        <link rel="stylesheet" href="css/iglsim_style.css">
 
         <script src="script/inject_nav.js"></script>
         <script src="script/zoom_and_pan.js"></script>
@@ -27,6 +28,172 @@
         <svg id="map" width="90vh" height="90vh" viewBox="0 0 2000 2000">
             <image href="res/Erangel_PNG.png" x="0" y="0" width="2000" height="2000" />
         </svg>
+
+        <canvas id="mask-canvas"></canvas>
+
+        <script>
+            let alphaData = [];
+
+            function init(imagePath) {
+                let canvas = document.getElementById("mask-canvas");
+                let context = document.getElementById("mask-canvas").getContext("2d");
+                let imageObj = new Image();
+                imageObj.onload = function() {
+                    canvas.width = imageObj.width;
+                    canvas.height = imageObj.height;
+                    context.drawImage(imageObj, 0, 0, 2000, 2000, 0, 0, 2000, 2000);
+                    let rawData = context.getImageData(0,0,2000,2000).data;
+                    for( let i = 0; i < rawData.length; i++ ) {
+                        if((i+1) % 4 == 0) {
+                            alphaData.push(rawData[i]);
+                        }
+                    }
+                };
+                imageObj.src = imagePath;
+            }
+
+            function getMaskPixel(x, y) {
+                if(imageData) {
+                    return imageData[2000*y + x];
+                }
+                return -1;
+            }
+
+            function drawPlaneStartpoint(point) {
+                let map = document.getElementById("map");
+
+                let svgns = "http://www.w3.org/2000/svg";
+                let circle = document.createElementNS( svgns, 'circle' );
+                circle.setAttributeNS(null, 'cx', point[0]);
+                circle.setAttributeNS(null, 'cy', point[1]);
+                circle.setAttributeNS(null, 'r', 15);
+                circle.setAttributeNS(null, 'fill', 'white' );
+
+                map.appendChild(circle);
+                return circle;
+            }
+
+            function drawPlaneLine(start, end) {
+                let map = document.getElementById("map");
+
+                let svgns = "http://www.w3.org/2000/svg";
+                let baseLine = document.createElementNS( svgns, 'line' );
+                baseLine.setAttribute('x1', start[0]);
+                baseLine.setAttribute('y1', start[1]);
+                baseLine.setAttribute('x2', end[0]);
+                baseLine.setAttribute('y2', end[1]);
+                baseLine.setAttribute("stroke", "white");
+                baseLine.setAttribute("stroke-width", 8);
+
+                let dashLine1 = document.createElementNS( svgns, 'line' );
+                dashLine1.setAttribute('x1', start[0]);
+                dashLine1.setAttribute('y1', start[1]);
+                dashLine1.setAttribute('x2', end[0]);
+                dashLine1.setAttribute('y2', end[1]);
+                dashLine1.setAttribute("stroke", "red");
+                dashLine1.setAttribute("stroke-dasharray", "50,50");
+                dashLine1.setAttribute("stroke-width", 8);
+
+                let dashLine2 = document.createElementNS( svgns, 'line' );
+                dashLine2.setAttribute('x1', start[0]);
+                dashLine2.setAttribute('y1', start[1]);
+                dashLine2.setAttribute('x2', start[0]);
+                dashLine2.setAttribute('y2', start[1]);
+                dashLine2.setAttribute("stroke", "red");
+                dashLine2.setAttribute("stroke-dasharray", "50,50");
+                dashLine2.setAttribute("stroke-width", 8);
+
+                map.appendChild(baseLine);
+                map.appendChild(dashLine1);
+                map.appendChild(dashLine2);
+                return [baseLine, dashLine1, dashLine2];
+            }
+
+            function generatePlaneRoute() {
+                function randomPlanePoint() {
+                    validRadius = 0.90 * 0.5 * 2000;
+                    let angle = Math.random() * 2 * Math.PI;
+                    return [1000+validRadius*Math.cos(angle), 1000+validRadius*Math.sin(angle)];
+                }
+
+                function validPlaneRoute(start, end) {
+                    let deltaX = 1000 - ((start[0] + end[0]) / 2);
+                    let deltaY = 1000 - ((start[1] + end[1]) / 2);
+                    let magnitude = Math.sqrt(deltaX*deltaX + deltaY*deltaY);
+                    return magnitude <= 400;
+                }
+
+                let start = randomPlanePoint();
+                let end = randomPlanePoint();
+                while(!validPlaneRoute(start, end)) {
+                    start = randomPlanePoint();
+                    end = randomPlanePoint();
+                }
+
+                [planeBase, planeDash1, planeDash2] = drawPlaneLine(start, end);
+                planeStart = drawPlaneStartpoint(start);
+
+                return {
+                    planeBase,
+                    planeDash1,
+                    planeDash2,
+                    planeStart
+                };
+            }
+
+            function setupScrollingPlaneLine(planeRoute) {
+                let i = 0;
+                let refreshTime = 20;
+                let basePos = [parseFloat(planeRoute.planeDash1.getAttribute("x1")), parseFloat(planeRoute.planeDash1.getAttribute("y1"))];
+                let endPos = [parseFloat(planeRoute.planeDash1.getAttribute("x2")), parseFloat(planeRoute.planeDash1.getAttribute("y2"))];
+                let deltaPos = [endPos[0]-basePos[0], endPos[1]-basePos[1]];
+                let magnitude = Math.sqrt(deltaPos[0]*deltaPos[0] + deltaPos[1]*deltaPos[1]);
+                setInterval(() => {
+                    i++;
+                    let period = 20000;
+                    let multiple = ((i*refreshTime) % period) / period;
+
+                    let offsetFromStart = [deltaPos[0]*multiple, deltaPos[1]*multiple];
+                    let unionPos = [basePos[0]+offsetFromStart[0], basePos[1]+offsetFromStart[1]];
+                    
+                    planeRoute.planeDash1.setAttribute("x1", unionPos[0]);
+                    planeRoute.planeDash1.setAttribute("y1", unionPos[1]);
+                    planeRoute.planeDash2.setAttribute("x2", basePos[0]);
+                    planeRoute.planeDash2.setAttribute("y2", basePos[1]);
+
+                    let dash2Shift = [50*deltaPos[0]/magnitude, 50*deltaPos[1]/magnitude];
+                    if(magnitude - Math.sqrt(offsetFromStart[0]*offsetFromStart[0]+offsetFromStart[1]*offsetFromStart[1]) <= 50) {
+                        planeRoute.planeDash2.setAttribute("x1", endPos[0]);
+                        planeRoute.planeDash2.setAttribute("y1", endPos[1]);
+                    } else {
+                        planeRoute.planeDash2.setAttribute("x1", unionPos[0]+dash2Shift[0]);
+                        planeRoute.planeDash2.setAttribute("y1", unionPos[1]+dash2Shift[1]);
+                    }
+                }, refreshTime);
+            }
+
+            function generatePhaseOne(center) {
+                let map = document.getElementById("map");
+
+                let svgns = "http://www.w3.org/2000/svg";
+                let circle = document.createElementNS( svgns, 'circle' );
+                circle.setAttributeNS(null, 'cx', center[0]);
+                circle.setAttributeNS(null, 'cy', center[1]);
+                circle.setAttributeNS(null, 'r', 500);
+                circle.setAttributeNS(null, 'stroke', 'white' );
+                circle.setAttributeNS(null, 'stroke-width', 5 );
+                circle.setAttributeNS(null, 'fill', 'none' );
+
+                map.appendChild(circle);
+                return circle;
+            }
+
+            var imageObj = init('res/Erangel_Mask.png');
+            planeRoute = generatePlaneRoute();
+            setupScrollingPlaneLine(planeRoute);
+            generatePhaseOne([1000,1000]);
+
+        </script>
 
     </body>
 
