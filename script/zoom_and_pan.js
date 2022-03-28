@@ -42,8 +42,6 @@ setTimeout(() => {
             cur[0] = targetX - cur[2] * ((targetX - cur[0]) / oldCur[2]);
             cur[1] = targetY - cur[3] * ((targetY - cur[1]) / oldCur[3]);
 
-            console.log(cur);
-
             cur = transformCenterToEdge(cur);
             cur[0] = clamp(cur[0], 0, 2000-cur[2]);
             cur[1] = clamp(cur[1], 0, 2000-cur[3]);
@@ -86,7 +84,8 @@ setTimeout(() => {
             }
             offsetX = x - lockX;
             offsetY = y - lockY;
-            updateViewbox(panViewbox(startDrag, startDrag[2]*(-offsetX / 1000), startDrag[3]*(-offsetY / 1000)));
+            let size = 0.90 * window.innerHeight;
+            updateViewbox(panViewbox(startDrag, startDrag[2]*(-offsetX / size), startDrag[3]*(-offsetY / size)));
         } else {
             lockX = -1;
             lockY = -1;
@@ -95,8 +94,9 @@ setTimeout(() => {
     
     map.addEventListener("wheel", function(event) {
         let curCenter = transformEdgeToCenter(getViewbox());
-        curCenter[0] += curCenter[2] * ((x - 500) / 1000);
-        curCenter[1] += curCenter[3] * ((y - 500) / 1000);
+        let size = 0.90 * window.innerHeight;
+        curCenter[0] += curCenter[2] * ((x - (size / 2)) / size);
+        curCenter[1] += curCenter[3] * ((y - (size / 2)) / size);
         updateViewbox(zoomViewbox(curCenter[0], curCenter[1], event.deltaY * 2));
     });
 }, 500);
