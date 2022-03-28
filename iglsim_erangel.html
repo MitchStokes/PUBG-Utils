@@ -109,6 +109,38 @@
                 return [baseLine, dashLine1, dashLine2];
             }
 
+            function drawPlaneArrow(start, end) {
+                let map = document.getElementById("map");
+
+                let svgns = "http://www.w3.org/2000/svg";
+                let polygon = document.createElementNS( svgns, 'polygon' );
+
+                let lineDelta = [end[0]-start[0], end[1]-start[1]];
+                let magnitude = Math.sqrt(lineDelta[0]*lineDelta[0] + lineDelta[1]*lineDelta[1]);
+                lineDelta = [lineDelta[0]/magnitude, lineDelta[1]/magnitude];
+
+                let cornerDelta=[-lineDelta[1], lineDelta[0]];
+
+                let point1 = map.createSVGPoint();
+                point1.x = end[0] + 15*cornerDelta[0];
+                point1.y = end[1] + 15*cornerDelta[1];
+                polygon.points.appendItem(point1);
+
+                let point2 = map.createSVGPoint();
+                point2.x = end[0] - 15*cornerDelta[0];
+                point2.y = end[1] - 15*cornerDelta[1];
+                polygon.points.appendItem(point2);
+
+                let point3 = map.createSVGPoint();
+                point3.x = end[0] + 50*lineDelta[0];
+                point3.y = end[1] + 50*lineDelta[1];
+                polygon.points.appendItem(point3);
+
+                polygon.setAttribute("fill", "white");
+                map.appendChild(polygon);
+                return polygon;
+            }
+
             function generatePlaneRoute() {
                 function randomPlanePoint() {
                     validRadius = 0.90 * 0.5 * 2000;
@@ -132,12 +164,14 @@
 
                 [planeBase, planeDash1, planeDash2] = drawPlaneLine(start, end);
                 planeStart = drawPlaneStartpoint(start);
+                planeArrow = drawPlaneArrow(start, end);
 
                 return {
                     planeBase,
                     planeDash1,
                     planeDash2,
-                    planeStart
+                    planeStart,
+                    planeArrow
                 };
             }
 
@@ -191,6 +225,7 @@
             var imageObj = init('res/Erangel_Mask.png');
             planeRoute = generatePlaneRoute();
             setupScrollingPlaneLine(planeRoute);
+            console.log(planeRoute);
             generatePhaseOne([1000,1000]);
 
         </script>
