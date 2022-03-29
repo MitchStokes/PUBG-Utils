@@ -1,4 +1,4 @@
-setTimeout(() => {
+function initZoomAndPan() {
     const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
 
     function getViewbox() {
@@ -9,11 +9,11 @@ setTimeout(() => {
         })
         return out;
     }
-    
+
     function updateViewbox(newViewbox) {
         document.getElementById( 'map' ).setAttribute("viewBox", newViewbox.join(" "));
     }
-    
+
     function transformEdgeToCenter(box) {
         let out = [];
         out.push(box[0] + box[2] / 2);
@@ -22,7 +22,7 @@ setTimeout(() => {
         out.push(box[3]);
         return out;
     }
-    
+
     function transformCenterToEdge(box) {
         let out = [];
         out.push(box[0] - box[2] / 2);
@@ -32,7 +32,7 @@ setTimeout(() => {
         
         return out;
     }
-    
+
     function zoomViewbox(targetX, targetY, amount) {
         if(getViewbox()[2] + amount >= 400) {
             let cur = transformEdgeToCenter(getViewbox());
@@ -49,30 +49,30 @@ setTimeout(() => {
         }
         return getViewbox();
     }
-    
+
     function panViewbox(initial, amountX, amountY) {
         let initialCopy = [...initial];
         initialCopy[0] = initialCopy[0] + amountX;
         initialCopy[1] = initialCopy[1] + amountY;
-    
+
         initialCopy[0] = clamp(initialCopy[0], 0, 2000-initialCopy[2]);
         initialCopy[1] = clamp(initialCopy[1], 0, 2000-initialCopy[3]);
-    
+
         return initialCopy;
     }
-    
+
     let mousedown = false;
     let x = 0;
     let y = 0;
     let lockX = -1;
     let lockY = -1;
     let startDrag = getViewbox();
-    
+
     let map = document.getElementById( 'map' );
     map.addEventListener("mouseup", function(event) { mousedown = false; map.style.cursor = "default" });
     map.addEventListener("mouseleave", function(event) { mousedown = false; map.style.cursor = "default" });
     map.addEventListener("mousedown", function(event) { mousedown = true; map.style.cursor = "grab" });
-    
+
     map.addEventListener("mousemove", function(event) {
         x = event.layerX;
         y = event.layerY;
@@ -91,7 +91,7 @@ setTimeout(() => {
             lockY = -1;
         }
     });
-    
+
     map.addEventListener("wheel", function(event) {
         let curCenter = transformEdgeToCenter(getViewbox());
         let size = 0.90 * window.innerHeight;
@@ -99,4 +99,4 @@ setTimeout(() => {
         curCenter[1] += curCenter[3] * ((y - (size / 2)) / size);
         updateViewbox(zoomViewbox(curCenter[0], curCenter[1], event.deltaY * 2));
     });
-}, 500);
+}
