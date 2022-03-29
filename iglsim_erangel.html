@@ -35,11 +35,17 @@
             let alphaData = [];
 
             var imageObj = init('res/Erangel_Mask.png');
-            
 
             function createGame() {
-                planeRoute = generatePlaneRoute();
-                generatePhaseOne([1000,1000]);
+                planeRouteObj = generatePlaneRoute();
+                phaseOneObj = generatePhaseOne(planeRouteObj);
+                phaseTwoObj = generateArbitraryPhase(phaseOneObj, 0.55, false);
+                phaseThreeObj = generateArbitraryPhase(phaseTwoObj, 0.60, false);
+                phaseFourObj = generateArbitraryPhase(phaseThreeObj, 0.60, true);
+                phaseFiveObj = generateArbitraryPhase(phaseFourObj, 0.65, false);
+                phaseSixObj = generateArbitraryPhase(phaseFiveObj, 0.65, false);
+                phaseSevenObj = generateArbitraryPhase(phaseSixObj, 0.65, false);
+                phaseEightObj = generateArbitraryPhase(phaseSevenObj, 0.70, true);
             }
 
             function init(imagePath) {
@@ -66,6 +72,23 @@
                     return alphaData[2000*y + x];
                 }
                 return -1;
+            }
+
+            function getNumberOfWaterPixelsInCircle(center, radius) {
+                function isInCircle(x, y) {
+                    return Math.sqrt(Math.pow(x-center[0], 2) + Math.pow(y-center[1], 2)) <= radius;
+                }
+
+                let landRatioResolution = 5;
+                let numWaters = 0;
+                for(let x = 0; x < 2000; x += landRatioResolution) {
+                    for(let y = 0; y < 2000; y += landRatioResolution) {
+                        if(isInCircle(x, y)) {
+                            numWaters += (getMaskPixel(x, y) > 0) ? 1 : 0;
+                        }
+                    }
+                }
+                return numWaters;
             }
 
             function drawPlaneStartpoint(point) {
@@ -170,6 +193,7 @@
                     start = randomPlanePoint();
                     end = randomPlanePoint();
                 }
+                let angle = Math.atan2(end[1]-start[1], end[0]-start[0]);
 
                 [planeBase, planeDash1, planeDash2] = drawPlaneLine(start, end);
                 planeStart = drawPlaneStartpoint(start);
@@ -178,6 +202,7 @@
                 out = {
                     start,
                     end,
+                    angle,
                     planeBase,
                     planeDash1,
                     planeDash2,
@@ -215,20 +240,119 @@
                 }, refreshTime);
             }
 
-            function generatePhaseOne(center) {
+            function drawPhaseCircle(center, radius) {
                 let map = document.getElementById("map");
 
                 let svgns = "http://www.w3.org/2000/svg";
                 let circle = document.createElementNS( svgns, 'circle' );
                 circle.setAttributeNS(null, 'cx', center[0]);
                 circle.setAttributeNS(null, 'cy', center[1]);
-                circle.setAttributeNS(null, 'r', 500);
+                circle.setAttributeNS(null, 'r', radius);
                 circle.setAttributeNS(null, 'stroke', 'white' );
-                circle.setAttributeNS(null, 'stroke-width', 5 );
+                circle.setAttributeNS(null, 'stroke-width', 3 );
                 circle.setAttributeNS(null, 'fill', 'none' );
 
                 map.appendChild(circle);
                 return circle;
+            }
+
+            function generatePhaseOne(planeRoute) {
+                let previousRadius = 1000 * Math.sqrt(2);
+                let radius = 500;
+                
+                let hardshift = (previousRadius - radius) * Math.random();
+                let angle = Math.random() * 2 * Math.PI;
+                let center = [1000+hardshift*Math.cos(angle), 1000-hardshift*Math.sin(angle)];
+                let d1 = Math.sqrt(Math.pow(center[0]-planeRoute.start[0], 2) + Math.pow(center[1]-planeRoute.start[1], 2));
+                let theta = Math.abs(planeRoute.angle - Math.atan2(center[1]-planeRoute.start[1], center[0]-planeRoute.start[0]));
+                theta = (theta > Math.PI) ? Math.abs(theta - (2 * Math.PI)) : theta;
+
+                while(getMaskPixel(Math.floor(center[0]), Math.floor(center[1])) > 0 || (d1 * Math.sin(theta)) > radius) {
+                    hardshift = (previousRadius - radius) * Math.random();
+                    angle = Math.random() * 2 * Math.PI;
+                    center = [1000+hardshift*Math.cos(angle), 1000-hardshift*Math.sin(angle)];
+                    d1 = Math.sqrt(Math.pow(center[0]-planeRoute.start[0], 2) + Math.pow(center[1]-planeRoute.start[1], 2));
+                    theta = Math.abs(planeRoute.angle - Math.atan2(center[1]-planeRoute.start[1], center[0]-planeRoute.start[0]));
+                    theta = (theta > Math.PI) ? Math.abs(theta - (2 * Math.PI)) : theta;
+                }
+                
+                let phaseOneCircle = drawPhaseCircle(center, radius);
+                return {
+                    hardshift,
+                    "angleRad" : angle,
+                    "angleDeg" : (angle * 180 / Math.PI),
+                    center,
+                    radius,
+                    "distanceFromPlane" : (d1 * Math.sin(theta)),
+                    phaseOneCircle
+                }
+            }
+
+            function generateArbitraryPhase(previousPhase, shrinkRatio, landRatio) {
+                if(!landRatio) {
+
+                    let previousRadius = previousPhase.radius;
+                    let radius = previousRadius * shrinkRatio;
+
+                    let hardshift = (previousRadius - radius) * Math.pow(Math.random(), 0.56);
+                    let angle = Math.random() * 2 * Math.PI;
+                    let center = [previousPhase.center[0]+hardshift*Math.cos(angle), previousPhase.center[1]-hardshift*Math.sin(angle)];
+
+                    while(getMaskPixel(Math.floor(center[0]), Math.floor(center[1])) > 0) {
+                        hardshift = (previousRadius - radius) * Math.random();
+                        angle = Math.random() * 2 * Math.PI;
+                        center = [previousPhase.center[0]+hardshift*Math.cos(angle), previousPhase.center[1]-hardshift*Math.sin(angle)];
+                    }
+                    
+                    let phaseCircle = drawPhaseCircle(center, radius);
+                    return {
+                        hardshift,
+                        "angleRad" : angle,
+                        "angleDeg" : (angle * 180 / Math.PI),
+                        center,
+                        radius,
+                        phaseCircle
+                    }
+
+                } else {
+
+                    let curCircle = {};
+                    let curBest = Number.MAX_SAFE_INTEGER;
+                    
+                    let landRatioTries = 100;
+                    for(let i = 1; i <= landRatioTries; i++) {
+                        let previousRadius = previousPhase.radius;
+                        let radius = previousRadius * shrinkRatio;
+
+                        let hardshift = (previousRadius - radius) * Math.pow(Math.random(), 0.56);
+                        let angle = Math.random() * 2 * Math.PI;
+                        let center = [previousPhase.center[0]+hardshift*Math.cos(angle), previousPhase.center[1]-hardshift*Math.sin(angle)];
+
+                        while(getMaskPixel(Math.floor(center[0]), Math.floor(center[1])) > 0) {
+                            hardshift = (previousRadius - radius) * Math.random();
+                            angle = Math.random() * 2 * Math.PI;
+                            center = [previousPhase.center[0]+hardshift*Math.cos(angle), previousPhase.center[1]-hardshift*Math.sin(angle)];
+                        }
+
+                        let waterCount = getNumberOfWaterPixelsInCircle(center, radius);
+                        if(waterCount < curBest) {
+                            curBest = waterCount;
+                            curCircle = {
+                                hardshift,
+                                "angleRad" : angle,
+                                "angleDeg" : (angle * 180 / Math.PI),
+                                center,
+                                radius,
+                                waterCount
+                            }
+                        }
+                    }
+
+                    let phaseCircle = drawPhaseCircle(curCircle.center, curCircle.radius);
+                    curCircle["phaseCircle"] = phaseCircle;
+                    return curCircle;
+
+                }
             }
 
         </script>
