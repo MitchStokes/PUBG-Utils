@@ -2,7 +2,7 @@ function initEndingsManager(mapName) {
     let IS_REMOTE = window.location.origin.includes('github');
 
     async function getMatchData() {
-        return fetch( window.location.origin + (IS_REMOTE ? '/PUBG-Utils' : '') + '/res/match_data.csv' )
+        return fetch( window.location.origin + (IS_REMOTE ? '/PUBG-Utils' : '') + '/res/twire_miner_c1.csv' )
             .then( response => response.text() )
             .then( text => {
                 let lines = (IS_REMOTE ? text.split('\n') : text.split( '\r\n' ));
@@ -24,13 +24,14 @@ function initEndingsManager(mapName) {
     }
 
     getMatchData().then(data => {
+        console.log(data[0]);
         data.forEach(match => {
             if( match['map'] == mapName ) {
                 var svgns = "http://www.w3.org/2000/svg";
 
                 var rect = document.createElementNS( svgns,'rect' );
-                rect.setAttributeNS( null, 'x', (2000/700) * match.centerX );
-                rect.setAttributeNS( null, 'y', (2000/700) * match.centerY );
+                rect.setAttributeNS( null, 'x', Math.round((2000/700) * match.centerX) );
+                rect.setAttributeNS( null, 'y', Math.round((2000/700) * match.centerY) );
                 rect.setAttributeNS( null, 'width', 15 );
                 rect.setAttributeNS( null, 'height', 15 );
                 rect.setAttributeNS( null, 'fill', '#' + Math.round( 0xffffff * Math.random()).toString(16) );
