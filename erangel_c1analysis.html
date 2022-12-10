@@ -15,19 +15,19 @@
         <link rel="stylesheet" href="css/nav_style.css">
 
         <script src="script/inject_nav.js"></script>
-        <script src="script/endings.js"></script>
+        <script src="script/c1analysis.js"></script>
         <script src="script/zoom_and_pan.js"></script>
 
     </head>
 
 
-    <body onload="initEndingsManager('Baltic_Main');">
+    <body onload="initNav(); initC1AnalysisManager('Baltic_Main');">
 
         <nav id="navbar"></nav>
 
-        <svg id="map" width="90vh" height="90vh" viewBox="0 0 2000 2000">
-            <image href="res/Erangel_PNG.png" x="0" y="0" width="2000" height="2000" />
-        </svg>
+        <canvas id="newmap" width="2000" height="2000">
+
+        </canvas>
 
     </body>
 
