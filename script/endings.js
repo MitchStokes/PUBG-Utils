@@ -2,7 +2,7 @@ function initEndingsManager(mapName) {
     let IS_REMOTE = window.location.origin.includes('github');
 
     async function getMatchData() {
-        return fetch( window.location.origin + (IS_REMOTE ? '/PUBG-Utils' : '') + '/res/twire_miner_c1.csv' )
+        return fetch( window.location.origin + (IS_REMOTE ? '/PUBG-Utils' : '') + '/res/twire_miner_c4.csv' )
             .then( response => response.text() )
             .then( text => {
                 let lines = (IS_REMOTE ? text.split('\n') : text.split( '\r\n' ));
