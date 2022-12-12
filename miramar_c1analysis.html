@@ -21,13 +21,17 @@
     </head>
 
 
-    <body onload="initNav(); initC1AnalysisManager('Desert_Main');">
+    <body onload="initNav();">
 
         <nav id="navbar"></nav>
 
-        <canvas id="newmap" width="2000" height="2000">
+        <div id="input">
+            <input id="c1parameters" type="text" value='{"x":400000,"y":400000,"limit":7000,"radius":350}'>
+            <button id="submit" onclick="initC1AnalysisManager('Desert_Main')">Submit</button>
+            <p id="status-string"></p>
+        </div>
 
-        </canvas>
+        <canvas id="map" width="1800" height="1800"></canvas>
 
     </body>
 

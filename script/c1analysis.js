@@ -1,20 +1,60 @@
 function initC1AnalysisManager(mapName) {
 
+    // Setup output text
+    let out = document.getElementById("status-string");
+    function statusLog(text) {
+        out.innerText = text;
+    }
 
+    // Parse inputs
+    let json = "";
+    try {
+        json = JSON.parse(document.getElementById("c1parameters").value);
+    } catch(err) {
+        statusLog("JSON input error");
+        return;
+    }
 
-    let centerX = 640000;
-    let centerY = 460609;
-    let limit = 7000;
-    let radius = 350;
+    let centerX = json.x;
+    let centerY = json.y;
+    let limit = json.limit;
+    let radius = json.radius;
     let map = mapName;
 
+    if(!centerX || !centerY || !limit || !radius || !map) {
+        statusLog("Invalid input parameter");
+        return;
+    }
+
+
+
+    // Config stuff
     const maxDistance = 201950;
-    const TRICKLE_VALUE = 20;
+    const CLUSTER_RANGE = 20;
 
 
-
-    let canvas = document.getElementById("newmap");
+    // Set up canvas and helper functions
+    let canvas = document.getElementById("map");
     let ctx = canvas.getContext("2d");
+
+    function getCursorPosition(canvas, event) {
+        const rect = canvas.getBoundingClientRect()
+        const x = event.clientX - rect.left
+        const y = event.clientY - rect.top
+        statusLog("x: " + x + " y: " + y)
+    }
+    
+    /* canvas.addEventListener('mousedown', function(e) {
+        getCursorPosition(canvas, e)
+    }) */
+
+    function drawCircle(x, y, radius, r, g, b, a) {
+        ctx.strokeStyle = `rgba(${r},${g},${b},${a})`
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, 2 * Math.PI);
+        ctx.stroke();
+    }
 
     function drawPixel(x, y, r, g, b, a) {
         ctx.strokeStyle = `rgba(${r},${g},${b},${a})`
@@ -25,25 +65,69 @@ function initC1AnalysisManager(mapName) {
         ctx.stroke();
     }
 
-    function drawCircle(x, y, radius, r, g, b, a) {
-        ctx.strokeStyle = `rgba(${r},${g},${b},${a})`
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, 2 * Math.PI);
-        ctx.stroke();
-    }
-
+    // Draw map image on canvas
     let mapImage = new Image();
     mapImage.onload = () => {
-        ctx.drawImage(mapImage, 0, 0, 2000, 2000);
-        drawCircle(2000 * (centerX / 816000), 2000 * (centerY / 816000), 2000 * (maxDistance / 816000), 255, 255, 255, 1.0);
+        ctx.drawImage(mapImage, 0, 0, 1800, 1800);
+        drawCircle(1800 * (centerX / 816000), 1800 * (centerY / 816000), 1800 * (maxDistance / 816000), 255, 255, 255, 1.0);
     }
     mapImage.src = (mapName == "Baltic_Main") ? "../res/Erangel_PNG.png" : "../res/Miramar_PNG.png";
+
+
+
+    // Other helper functions
+    function generateGrid(width, height) {
+        let grid = [];
+        for(let y = 0; y < height; y++) {
+            grid[y] = [];
+            for(let x = 0; x < width; x++) {
+                grid[y][x] = [];
+            }
+        }
+        return grid;
+    }
+
+    // Treshold is in units of meters
+    function getLocationsWithinDistance(locations, ignoreIdx, x, y, threshold) {
+        let adjThresh = 1800 * threshold / 8000; // Convert to map units
+        let out = [];
+
+        for(let i = 0; i < locations.length; i++) {
+            let loc = locations[i];
+            let distance = Math.sqrt(
+                Math.pow(loc.x - x, 2)
+                + Math.pow(loc.y - y, 2)
+            );
+            if(distance < adjThresh && !ignoreIdx.includes(i)) {
+                out.push(loc);
+                ignoreIdx.push(i);
+            }
+        }
+
+        return out;
+    }
+
+    // Draw boxes for a cluster
+    function drawCluster(cluster, r, g, b, a) {
+        ctx.fillStyle = `rgba(${r},${g},${b},${a})`
+        let width = 2 * (1800 * CLUSTER_RANGE / 8000);
+
+        cluster.forEach(loc => {
+            ctx.fillRect(loc.x - (0.5 * width), loc.y - (0.5 * width), width, width);
+        });   
+    }
+
+    // Gets average value of a cluster
+    function clusterAverage(cluster) {
+        let sum = 0;
+        cluster.forEach(loc => sum += loc.value);
+        return sum / cluster.length;
+    }
 
     
 
     async function getC1sWithinRange() {
-        console.log("Getting C1s in range...");
+        statusLog("Getting C1s in range...");
         return fetch(`http://localhost:5000/analysis/c1within?radius=${radius}&limit=${limit}&map=${map}&centerX=${centerX}&centerY=${centerY}`)
             .then( response => response.json() )
             .then( json => {
@@ -56,26 +140,21 @@ function initC1AnalysisManager(mapName) {
         return await response.json();
     }
 
+
+
     getC1sWithinRange().then(data => {
-        console.log(`Found ${data.body.length} games in range.`);
-        console.log("Getting telemetry for each game...");
+        statusLog(`Getting telemetry for ${data.body.length} games (About 1 game per second)...`);
 
         let idString = "";
         data.body.forEach(match => {
             idString += `${match.id},`;
         })
         idString = "[" + idString.substring(0, idString.length - 1) + "]";
-
+        
         getLocationsAndPoints(idString)
             .then(data => {
-                // Initialize location matrix matrix
-                let matrix = [];
-                for(let i = 0; i < 2000; i++) {
-                    matrix[i] = [];
-                    for(let j = 0; j < 2000; j++) {
-                        matrix[i][j] = [];
-                    }
-                }
+
+                let locations = [];
 
                 // Iterate through games and push (points earned / total points) to location matrix
                 let games = data.body;
@@ -84,60 +163,59 @@ function initC1AnalysisManager(mapName) {
                     let game = games[gameId];
                     if(game.hasOwnProperty("playerLocations")) {
                         Object.keys(game.playerLocations).forEach(playerName => {
+
                             let player = game.playerLocations[playerName];
 
+                            // Only take player locations within maxDistance of c1 center (radius of c1)
                             let distance = Math.sqrt(
                                 Math.pow(player.x - centerX, 2)
                                 + Math.pow(player.y - centerY, 2)
                             );
-                            
+
                             if(distance < maxDistance) {
-                                let drawX = -10 + Math.round((2000/816000) * player.x);
-                                let drawY = -10 + Math.round((2000/816000) * player.y);
-                                let value = game.pointsByPlayer.players[playerName].points / game.totalPoints;
+                                let drawX = -6 + Math.round((1800/816000) * player.x);
+                                let drawY = -6 + Math.round((1800/816000) * player.y);
+                                let value = game.pointsByPlayer.players[playerName].points;
 
-                                for(let xOffset = -TRICKLE_VALUE; xOffset <= TRICKLE_VALUE; xOffset++) {
-                                    let x = drawX + xOffset;
-                                    if(x < 0 || x > 1999) continue;
-
-                                    for(let yOffset = -TRICKLE_VALUE; yOffset <= TRICKLE_VALUE; yOffset++) {
-                                        let y = drawY + yOffset;
-                                        if(y < 0 || y > 1999) continue;
-
-                                        matrix[x][y].push(value);
-                                    }
-                                }
+                                locations.push({ x: drawX, y: drawY, value });
                             }
                         });
                     }
                 });
 
-                // Refine location matrix to require a minimum amount of data points to assign a good ranking
-                let maxValue = 0;
-                for(let x = 0; x < matrix.length; x++) {
-                    for(let y = 0; y < matrix[x].length; y++) {
-                        if(matrix[x][y].length > 0) {
+                // Post loop
+                let usedLocations = [];
+                let clusters = [];
 
-                            let sum = 0;
-                            matrix[x][y].forEach(element => {
-                                sum += element;
-                            });
-                            let value = (matrix[x][y].length > 0.1 * (gameCount * 4)) ? sum / matrix[x][y].length : 0;
+                // BFS exapnds a cluster with a certain search radius
+                function buildCluster(locations, usedLocations, firstPoint) {
+                    let list = [];
 
-                            matrix[x][y] = value;
-                            maxValue = Math.max(value, maxValue);
-                        } else {
-                            matrix[x][y] = 0;
-                        }
+                    let newLocs = getLocationsWithinDistance(locations, usedLocations, firstPoint.x, firstPoint.y, CLUSTER_RANGE);
+                    while(newLocs.length > 0) {
+                        newLocs.forEach(loc => list.push(loc));
+                        newNewLocs = [];
+                        newLocs.forEach(loc => {
+                            let temp = getLocationsWithinDistance(locations, usedLocations, loc.x, loc.y, CLUSTER_RANGE);
+                            temp.forEach(tempLoc => newNewLocs.push(tempLoc));
+                        })
+                        newLocs = newNewLocs;
                     }
+
+                    return list;
                 }
 
-                for(let x = 0; x < matrix.length; x++) {
-                    for(let y = 0; y < matrix[x].length; y++) {
-                        let value = matrix[x][y] / maxValue;
-                        drawPixel(x, y, 255, 0, 255 * Math.pow(value, 3), Math.pow(value, 3));
-                    }
+                // Iterate over unused points to cluster every point
+                for(let i = 0; i < locations.length; i++) {
+                    if(!usedLocations.includes(i)) clusters.push(buildCluster(locations, usedLocations, locations[i]));
                 }
+
+                // Draw each cluster
+                clusters.forEach(cluster => {
+                    if(cluster.length > gameCount * 0.2) drawCluster(cluster, Math.min(255, 4 * Math.pow(clusterAverage(cluster), 2)), 0, 0, 1.0);
+                })
+
+                statusLog("Completed");
             });
     });
 }
