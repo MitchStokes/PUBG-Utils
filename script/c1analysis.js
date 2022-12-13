@@ -15,11 +15,18 @@ function initC1AnalysisManager(mapName) {
         return;
     }
 
+    const mapDict = {
+        "Baltic_Main": "Erangel",
+        "Desert_Main": "Miramar",
+        "Miramar": "Desert_Main",
+        "Erangel": "Baltic_Main"
+    };
+
     let centerX = json.x;
     let centerY = json.y;
     let limit = json.limit;
     let radius = json.radius;
-    let map = mapName;
+    let map = mapDict[mapName];
 
     if(!centerX || !centerY || !limit || !radius || !map) {
         statusLog("Invalid input parameter");
@@ -63,6 +70,13 @@ function initC1AnalysisManager(mapName) {
         ctx.moveTo(x, y);
         ctx.lineTo(x + 1, y + 1);
         ctx.stroke();
+    }
+
+    function drawText(text, x, y) {
+        ctx.fillStyle = "white";
+        ctx.font = "12px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(text, x, y);
     }
 
     // Draw map image on canvas
@@ -212,7 +226,10 @@ function initC1AnalysisManager(mapName) {
 
                 // Draw each cluster
                 clusters.forEach(cluster => {
-                    if(cluster.length > gameCount * 0.2) drawCluster(cluster, Math.min(255, 4 * Math.pow(clusterAverage(cluster), 2)), 0, 0, 1.0);
+                    if(cluster.length > gameCount * 0.2) {
+                        drawCluster(cluster, Math.min(255, 4 * Math.pow(clusterAverage(cluster), 2)), 0, 0, 1.0);
+                        drawText(`${Math.round(100 * cluster.length / gameCount) / 100}`, cluster[0].x, cluster[0].y);
+                    }
                 })
 
                 statusLog("Completed");
