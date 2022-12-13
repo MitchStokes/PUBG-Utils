@@ -23,10 +23,16 @@ function initEndingsManager(mapName) {
             } );
     }
 
+    const mapDict = {
+        "Baltic_Main": "Erangel",
+        "Desert_Main": "Miramar",
+        "Miramar": "Desert_Main",
+        "Erangel": "Baltic_Main"
+    };
+
     getMatchData().then(data => {
-        console.log(data[0]);
         data.forEach(match => {
-            if( match['map'] == mapName ) {
+            if( match['map'] == mapDict[mapName] ) {
                 var svgns = "http://www.w3.org/2000/svg";
 
                 var rect = document.createElementNS( svgns,'rect' );
