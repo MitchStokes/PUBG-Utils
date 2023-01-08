@@ -26,3 +26,9 @@
     background-color: #DC9E2D;
     border: none;
 }
+
+#status-string {
+    color: white;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12px;
+}

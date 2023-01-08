@@ -37,7 +37,7 @@ function initC1AnalysisManager(mapName) {
 
     // Config stuff
     const maxDistance = 201950;
-    const CLUSTER_RANGE = 20;
+    const CLUSTER_RANGE = 30;
 
 
     // Set up canvas and helper functions
@@ -227,7 +227,7 @@ function initC1AnalysisManager(mapName) {
                 // Draw each cluster
                 clusters.forEach(cluster => {
                     if(cluster.length > gameCount * 0.2) {
-                        drawCluster(cluster, Math.min(255, 4 * Math.pow(clusterAverage(cluster), 2)), 0, 0, 1.0);
+                        drawCluster(cluster, Math.min(255, 30 * Math.pow(clusterAverage(cluster), 1)), 0, 0, 1.0);
                         drawText(`${Math.round(100 * cluster.length / gameCount) / 100}`, cluster[0].x, cluster[0].y);
                     }
                 })

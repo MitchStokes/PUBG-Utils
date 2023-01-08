@@ -59,6 +59,16 @@ function setupPhaseChangers(gameObj) {
     });
 }
 
+function getC1AnalysisParams(phase1) {
+    let out = {
+        x: Math.round(816000 * phase1.center[0] / 2000),
+        y: Math.round(816000 * phase1.center[1] / 2000),
+        limit: 7000,
+        radius: 350
+    }
+    return JSON.stringify(out);
+}
+
 function createGame() {
     planeRouteObj = generatePlaneRoute();
     phasesObj = createZones(planeRouteObj);
@@ -70,6 +80,7 @@ function createGame() {
 
 function createZones(planeRouteObj) {
     phase1Obj = generatePhaseOne(planeRouteObj);
+    document.getElementById("status-string").innerText = getC1AnalysisParams(phase1Obj);
     showPhaseCircle(phase1Obj, false);
 
     phase2Obj = generateArbitraryPhase(phase1Obj, 0.55, false);
