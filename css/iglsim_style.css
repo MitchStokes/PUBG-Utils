@@ -27,7 +27,7 @@
     border: none;
 }
 
-#status-string {
+#status-string, #status-string2 {
     color: white;
     font-family: Arial, Helvetica, sans-serif;
     font-size: 12px;

@@ -69,6 +69,16 @@ function getC1AnalysisParams(phase1) {
     return JSON.stringify(out);
 }
 
+function getC2AnalysisParams(phase1) {
+    let out = {
+        x: Math.round(816000 * phase1.center[0] / 2000),
+        y: Math.round(816000 * phase1.center[1] / 2000),
+        limit: 7000,
+        radius: 350
+    }
+    return JSON.stringify(out);
+}
+
 function createGame() {
     planeRouteObj = generatePlaneRoute();
     phasesObj = createZones(planeRouteObj);
@@ -84,6 +94,7 @@ function createZones(planeRouteObj) {
     showPhaseCircle(phase1Obj, false);
 
     phase2Obj = generateArbitraryPhase(phase1Obj, 0.55, false);
+    document.getElementById("status-string2").innerText = getC2AnalysisParams(phase2Obj);
     showPhaseCircle(phase2Obj, false);
 
     phase3Obj = generateArbitraryPhase(phase2Obj, 0.60, false);
